@@ -472,28 +472,32 @@ if 'prediction_history' not in st.session_state:
 # Define preset profiles
 LOW_RISK_PROFILE = {
     '_AGE80': 35, '_SEX': 2, 'DIABETE4': 1, 'PHYSHLTH': 0,
-    '_DRDXAR2': 1, 'WTKG3': 70, '_BMI5CAT': 2, '_RFBMI5': 1,
-    'SMOKE100': 2, '_SMOKER3': 4, 'SMOKDAY2': 0, 'USENOW3': 3,
-    '_PACKYRS': 0, '_TOTINDA': 1, '_PHYS14D': 20,
-    'DRNKANY6': 2, 'ALCDAY4': 0, '_DRNKWK3': 0, '_RFDRHV9': 1,
+    '_DRDXAR2': 1, 'WTKG3': 7000, '_BMI5CAT': 2, '_RFBMI5': 1,
+    'SMOKE100': 2, '_SMOKER3': 4, 'SMOKDAY2': 0, 'USENOW3': 3, # SMOKDAY2 0=Not Applicable
+    '_PACKYRS': 0, '_TOTINDA': 1, 
+    '_PHYS14D': 1, # Changed from 20 to 1 (Zero days when health not good)
+    'DRNKANY6': 2, 'ALCDAY4': 888, '_DRNKWK3': 0, '_RFDRHV9': 1,
     'EDUCA': 6, '_INCOMG1': 6, 'EMPLOY1': 1, 'MARITAL': 1,
     'VETERAN3': 2, 'RENTHOM1': 1, '_ADULT': 1, '_AGE65YR': 1,
-    'LASTSMK2': 8, '_RFSMOK3': 1, 'LCSLAST_': 0, 'LCSNUMC_': 0,
-    '_LCSYSMK': 0, '_LCSSMKG': 1, '_MRACE1': 1, '_HISPANC': 1,
+    'LASTSMK2': 0, '_RFSMOK3': 1, 'LCSLAST_': 0, 'LCSNUMC_': 0,
+    '_LCSYSMK': 0, '_LCSSMKG': 1, '_MRACE1': 1, '_HISPANC': 2,
     '_RACE': 1, '_RACEGR3': 1, '_LCSYQTS': 0, '_RFBING6': 1,
     '_IMPRACE': 1, 'DECIDE': 2
 }
 
 HIGH_RISK_PROFILE = {
     '_AGE80': 70, '_SEX': 1, 'DIABETE4': 2, 'PHYSHLTH': 20,
-    '_DRDXAR2': 2, 'WTKG3': 110, '_BMI5CAT': 4, '_RFBMI5': 2,
-    'SMOKE100': 1, '_SMOKER3': 1, 'SMOKDAY2': 30, 'USENOW3': 1,
-    '_PACKYRS': 50, '_TOTINDA': 2, '_PHYS14D': 0,
-    'DRNKANY6': 1, 'ALCDAY4': 20, '_DRNKWK3': 30, '_RFDRHV9': 2,
+    '_DRDXAR2': 2, 'WTKG3': 11000, '_BMI5CAT': 4, '_RFBMI5': 2,
+    'SMOKE100': 1, '_SMOKER3': 1, 
+    'SMOKDAY2': 1, # Changed from 30 to 1 (Every day)
+    'USENOW3': 1,
+    '_PACKYRS': 50, '_TOTINDA': 2, 
+    '_PHYS14D': 3, # Changed from 0 to 3 (14+ days when health not good)
+    'DRNKANY6': 1, 'ALCDAY4': 220, '_DRNKWK3': 30, '_RFDRHV9': 2,
     'EDUCA': 3, '_INCOMG1': 2, 'EMPLOY1': 7, 'MARITAL': 3,
     'VETERAN3': 1, 'RENTHOM1': 2, '_ADULT': 1, '_AGE65YR': 2,
-    'LASTSMK2': 1, '_RFSMOK3': 2, 'LCSLAST_': 5, 'LCSNUMC_': 3,
-    '_LCSYSMK': 40, '_LCSSMKG': 4, '_MRACE1': 1, '_HISPANC': 1,
+    'LASTSMK2': 1, '_RFSMOK3': 2, 'LCSLAST_': 55, 'LCSNUMC_': 40,
+    '_LCSYSMK': 40, '_LCSSMKG': 4, '_MRACE1': 1, '_HISPANC': 2,
     '_RACE': 1, '_RACEGR3': 1, '_LCSYQTS': 10, '_RFBING6': 2,
     '_IMPRACE': 1, 'DECIDE': 1
 }
@@ -832,35 +836,40 @@ for feature in list(FEATURE_DEFINITIONS.keys()):
                 step=config.get('step', 1),
                 help=config['help']
             )
-        elif config['type'] == 'radio':
+        elif config['type'] in ['radio', 'selectbox']:
             options_list = list(config['options'].keys())
-            # Find current index from session state value
             current_value = st.session_state[feature]
-            default_key = [k for k, v in config['options'].items() if v == current_value][0]
             
-            selected = st.sidebar.radio(
-                config['label'],
-                options_list,
-                index=options_list.index(default_key),
-                key=f"{feature}_display",  # Different key for display
-                help=config['help']
-            )
-            value = config['options'][selected]
-            st.session_state[feature] = value
+            # --- ROBUST LOOKUP START ---
+            # Try to find the key (label) that matches the current numeric value
+            found_keys = [k for k, v in config['options'].items() if v == current_value]
             
-        elif config['type'] == 'selectbox':
-            options_list = list(config['options'].keys())
-            # Find current index from session state value
-            current_value = st.session_state[feature]
-            default_key = [k for k, v in config['options'].items() if v == current_value][0]
+            if found_keys:
+                default_key = found_keys[0]
+            else:
+                # If value is invalid/not found, fallback to the default defined in config
+                default_key = config['default']
+                # Auto-correct the session state so it doesn't happen again
+                st.session_state[feature] = config['options'][default_key]
+            # --- ROBUST LOOKUP END ---
             
-            selected = st.sidebar.selectbox(
-                config['label'],
-                options_list,
-                index=options_list.index(default_key),
-                key=f"{feature}_display",  # Different key for display
-                help=config['help']
-            )
+            if config['type'] == 'radio':
+                selected = st.sidebar.radio(
+                    config['label'],
+                    options_list,
+                    index=options_list.index(default_key),
+                    key=f"{feature}_display",
+                    help=config['help']
+                )
+            else:  # selectbox
+                selected = st.sidebar.selectbox(
+                    config['label'],
+                    options_list,
+                    index=options_list.index(default_key),
+                    key=f"{feature}_display",
+                    help=config['help']
+                )
+                
             value = config['options'][selected]
             st.session_state[feature] = value
         
