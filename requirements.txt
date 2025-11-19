@@ -5,5 +5,5 @@ catboost==1.2.8
 plotly==5.24.1
 lightgbm==4.6.0
 xgboost==3.0.5
-torch==2.5.1+cu124
+torch==2.5.1
 
