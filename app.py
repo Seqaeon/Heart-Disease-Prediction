@@ -13,8 +13,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+
 
 
 # Page configuration
