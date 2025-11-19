@@ -61,55 +61,60 @@ st.markdown('<p class="main-header">❤️ Heart Disease Risk Prediction Dashboa
 st.markdown("### Interactive tool to assess heart disease risk based on clinical and lifestyle factors")
 
 
-
-
 FEATURE_DEFINITIONS = {
-    # Demographics
+    # --- Demographics ---
     '_AGE80': { 
         'label': 'Age', 
         'type': 'slider', 
         'min': 18, 'max': 80, 'default': 45, 
-        'help': 'Age in years (18-80)', 
+        'help': 'What is your age? (Ages 80 and older are grouped as 80)', 
         'category': 'Demographics' 
     },
     '_SEX': { 
-        'label': 'Sex', 
+        'label': 'Biological Sex', 
         'type': 'radio', 
         'options': {'Male': 1, 'Female': 2}, 
         'default': 'Male', 
-        'help': 'Biological sex', 
+        'help': 'Sex assigned at birth', 
         'category': 'Demographics' 
     },
     '_IMPRACE': { 
-        'label': 'Race/Ethnicity (Imputed)', 
+        'label': 'Race/Ethnicity', 
         'type': 'selectbox', 
-        'options': { 'White': 1, 'Black': 2, 'Asian': 3, 'Native American': 4, 'Hispanic': 5, 'Other': 6 }, 
-        'default': 'White', 
-        'help': 'Race/ethnicity classification', 
+        'options': { 
+            'White, Non-Hispanic': 1, 
+            'Black, Non-Hispanic': 2, 
+            'Asian, Non-Hispanic': 3, 
+            'American Indian/Alaskan Native': 4, 
+            'Hispanic': 5, 
+            'Other race, Non-Hispanic': 6 
+        }, 
+        'default': 'White, Non-Hispanic', 
+        'help': 'Which category best describes your racial or ethnic background?', 
         'category': 'Demographics' 
     },
     '_RACEG21': {
-        'label': 'Race Group 2',
+        'label': 'General Race Group',
         'type': 'selectbox',
-        'options': {'White': 1, 'Non-White': 2, 'Don\'t know/Refused': 9},
-        'default': 'White',
-        'help': 'White non-Hispanic vs Non-White',
+        'options': {'White, Non-Hispanic': 1, 'Non-White or Hispanic': 2, 'Prefer not to say': 9},
+        'default': 'White, Non-Hispanic',
+        'help': 'Broad racial/ethnic classification',
         'category': 'Demographics'
     },
     'EDUCA': { 
         'label': 'Education Level', 
         'type': 'selectbox', 
         'options': { 
-            'Never attended school': 1, 
-            'Elementary': 2, 
-            'Some high school': 3, 
-            'High school graduate': 4, 
-            'Some college': 5, 
+            'Never attended school or only kindergarten': 1, 
+            'Grades 1 through 8 (Elementary)': 2, 
+            'Grades 9 through 11 (Some high school)': 3, 
+            'High school graduate (or GED)': 4, 
+            'Some college or technical school': 5, 
             'College graduate': 6,
-            'Refused': 9 
+            'Prefer not to say': 9 
         }, 
-        'default': 'High school graduate', 
-        'help': 'Highest level of education completed', 
+        'default': 'High school graduate (or GED)', 
+        'help': 'What is the highest grade or year of school you completed?', 
         'category': 'Demographics' 
     },
     'MARITAL': { 
@@ -118,243 +123,245 @@ FEATURE_DEFINITIONS = {
         'options': { 
             'Married': 1, 'Divorced': 2, 'Widowed': 3, 
             'Separated': 4, 'Never married': 5, 'Unmarried couple': 6, 
-            'Refused': 9
+            'Prefer not to say': 9
         }, 
         'default': 'Married', 
-        'help': 'Current marital status', 
+        'help': 'Are you: (married, divorced, widowed, separated, never married, or a member of an unmarried couple)?', 
         'category': 'Demographics' 
     },
     'VETERAN3': { 
-        'label': 'Veteran Status', 
+        'label': 'Military Service', 
         'type': 'radio', 
-        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Have you ever served in the military?', 
+        'help': 'Have you ever served on active duty in the United States Armed Forces?', 
         'category': 'Demographics' 
     },
     'EMPLOY1': { 
         'label': 'Employment Status', 
         'type': 'selectbox', 
         'options': { 
-            'Employed': 1, 'Self-employed': 2, 'Unemployed <1 year': 3, 
-            'Unemployed >1 year': 4, 'Homemaker': 5, 'Student': 6, 
-            'Retired': 7, 'Unable to work': 8, 'Refused': 9 
+            'Employed for wages': 1, 'Self-employed': 2, 'Out of work for 1 year or more': 3, 
+            'Out of work for less than 1 year': 4, 'A homemaker': 5, 'A student': 6, 
+            'Retired': 7, 'Unable to work': 8, 'Prefer not to say': 9 
         }, 
-        'default': 'Employed', 
-        'help': 'Current employment status', 
+        'default': 'Employed for wages', 
+        'help': 'Which of the following best describes your current employment situation?', 
         'category': 'Demographics' 
     },
     'RENTHOM1': { 
         'label': 'Housing Status', 
         'type': 'selectbox', 
-        'options': {'Own': 1, 'Rent': 2, 'Other': 3, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': {'Own': 1, 'Rent': 2, 'Other arrangement': 3, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'Own', 
         'help': 'Do you own or rent your home?', 
         'category': 'Demographics' 
     },
     '_INCOMG1': { 
-        'label': 'Income Level', 
+        'label': 'Annual Household Income', 
         'type': 'selectbox', 
         'options': { 
-            '<$15,000': 1, '$15,000-$25,000': 2, '$25,000-$35,000': 3, 
-            '$35,000-$50,000': 4, '$50,000-$75,000': 5, '>$75,000': 6, 'Don\'t know/Refused': 9 
+            'Less than $15,000': 1, '$15,000 to < $25,000': 2, '$25,000 to < $35,000': 3, 
+            '$35,000 to < $50,000': 4, '$50,000 to < $75,000': 5, '$75,000 or more': 6, 'Prefer not to say': 9 
         }, 
-        'default': '$35,000-$50,000', 
-        'help': 'Annual household income range', 
+        'default': '$35,000 to < $50,000', 
+        'help': 'What is your annual household income from all sources?', 
         'category': 'Demographics' 
     },
     
-    # Clinical Features
+    # --- Clinical Features ---
+    # CRITICAL FIX: Codebook says 1=Yes, 3=No. Original code had 1=No, 2=Yes.
     'DIABETE4': { 
-        'label': 'Diabetes Status', 
+        'label': 'Diabetes Diagnosis', 
         'type': 'selectbox', 
         'options': { 
-            'No': 1, 'Yes': 2, 'Borderline/Pre-diabetes': 3, 'Yes (during pregnancy)': 4,
-            'Don\'t Know': 7, 'Refused': 9 
+            'Yes': 1, 'Yes (during pregnancy)': 2, 'No': 3, 'No, pre-diabetes or borderline': 4,
+            'Don\'t Know': 7, 'Prefer not to say': 9 
         }, 
         'default': 'No', 
-        'help': 'Have you ever been told you have diabetes?', 
+        'help': 'Have you ever been told by a doctor that you have diabetes?', 
         'category': 'Clinical' 
     },
     'PHYSHLTH': { 
-        'label': 'Days Physical Health Not Good', 
+        'label': 'Days of Poor Physical Health', 
         'type': 'slider', 
-        'min': 1, 'max': 99, 'default': 1, # Updated per user data (Min:1, Max:99)
-        'help': 'Number of days in past 30 days (88=None, 77=Don\'t know, 99=Refused)', 
+        'min': 1, 'max': 30, 'default': 0, # Codebook max is 30. 88=None (0).
+        'help': 'For how many days during the past 30 days was your physical health not good? (Enter 0 for None)', 
         'category': 'Clinical' 
     },
+    # CRITICAL FIX: Codebook says 1=Yes, 2=No. Original code had 1=No, 2=Yes.
     '_DRDXAR2': { 
         'label': 'Arthritis Diagnosis', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2}, # Data says [1, 2], ignoring missing/blank
+        'options': {'Yes': 1, 'No': 2}, 
         'default': 'No', 
-        'help': 'Have you been diagnosed with arthritis?', 
+        'help': 'Have you ever been told by a doctor that you have some form of arthritis, rheumatoid arthritis, gout, lupus, or fibromyalgia?', 
         'category': 'Clinical' 
     },
     'WTKG3': { 
-        'label': 'Weight (Raw Code)', 
+        'label': 'Weight (Metric Code)', 
         'type': 'slider', 
-        'min': 2268, 'max': 29030, 'default': 7000, # Updated per user data
-        'help': 'Weight in implied decimals (e.g., 7000 = 70.00 kg). Range: 2268-29030', 
+        'min': 2300, 'max': 29500, 'default': 7000, 
+        'help': 'Weight in kilograms with 2 implied decimal places (e.g., 7000 = 70.00 kg).', 
         'category': 'Clinical' 
     },
     '_BMI5CAT': { 
         'label': 'BMI Category', 
         'type': 'selectbox', 
-        'options': { 'Underweight': 1, 'Normal weight': 2, 'Overweight': 3, 'Obese': 4 }, 
-        'default': 'Normal weight', 
-        'help': 'Body Mass Index category', 
+        'options': { 'Underweight': 1, 'Normal Weight': 2, 'Overweight': 3, 'Obese': 4 }, 
+        'default': 'Normal Weight', 
+        'help': 'Body Mass Index (BMI) category derived from height and weight.', 
         'category': 'Clinical' 
     },
     '_RFBMI5': { 
-        'label': 'Overweight/Obese', 
+        'label': 'Overweight or Obese Status', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2, 'Don\'t know/Refused': 9}, 
+        'options': {'No': 1, 'Yes': 2, 'Don\'t know/Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'BMI >= 25', 
+        'help': 'Calculated status: Do you have a BMI greater than 25.00?', 
         'category': 'Clinical' 
     },
     'DECIDE':{ 
         'label': 'Difficulty Concentrating', 
         'type': 'radio', 
-        'options': { 'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': { 'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Difficulty concentrating, remembering, or making decisions?', 
+        'help': 'Do you have serious difficulty concentrating, remembering, or making decisions?', 
         'category': 'Clinical' 
     },  
     
-    # Lifestyle - Smoking
+    # --- Lifestyle - Smoking ---
     'SMOKE100': { 
         'label': 'Smoked 100+ Cigarettes', 
         'type': 'radio', 
-        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Have you smoked at least 100 cigarettes in your lifetime?', 
+        'help': 'Have you smoked at least 100 cigarettes in your entire life?', 
         'category': 'Lifestyle - Smoking' 
     },
     '_SMOKER3': { 
-        'label': 'Smoking Status', 
+        'label': 'Current Smoking Status', 
         'type': 'selectbox', 
         'options': { 
-            'Current smoker - daily': 1, 
+            'Current smoker - every day': 1, 
             'Current smoker - some days': 2, 
             'Former smoker': 3, 
             'Never smoked': 4,
-            'Refused/Missing': 9 
+            'Prefer not to say': 9 
         }, 
         'default': 'Never smoked', 
-        'help': 'Current smoking status', 
+        'help': 'Four-level smoker status', 
         'category': 'Lifestyle - Smoking' 
     },
     'SMOKDAY2': { 
-        'label': 'Smoking Frequency', 
-        'type': 'selectbox', # Changed from slider based on values [0, 1, 2, 3, 7, 9]
+        'label': 'Frequency of Smoking', 
+        'type': 'selectbox', 
         'options': {
             'Every day': 1, 'Some days': 2, 'Not at all': 3,
-            'Not applicable (Non-smoker)': 0, 'Don\'t Know': 7, 'Refused': 9
+            'Not applicable (Non-smoker)': 0, 'Don\'t Know': 7, 'Prefer not to say': 9
         },
         'default': 'Not applicable (Non-smoker)', 
-        'help': 'Frequency of days smoking', 
+        'help': 'Do you now smoke cigarettes every day, some days, or not at all?', 
         'category': 'Lifestyle - Smoking' 
     },
     'USENOW3': { 
-        'label': 'Current Tobacco Use', 
+        'label': 'Smokeless Tobacco Use', 
         'type': 'selectbox', 
-        'options': {'Every day': 1, 'Some days': 2, 'Not at all': 3, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': {'Every day': 1, 'Some days': 2, 'Not at all': 3, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'Not at all', 
-        'help': 'Do you currently use tobacco?', 
+        'help': 'Do you currently use chewing tobacco, snuff, or snus?', 
         'category': 'Lifestyle - Smoking' 
     },
     'LASTSMK2': { 
         'label': 'Time Since Last Smoked', 
         'type': 'selectbox', 
         'options': { 
-            'Never smoked/Not applicable': 0, # Added 0 based on data
-            'Within past month': 1, '1-3 months': 2, '3-6 months': 3, 
-            '6-12 months': 4, '1-5 years': 5, '5-10 years': 6, '>10 years': 7, 
-            'Never (Original)': 8, 'Don\'t Know': 77, 'Refused': 99 
+            'Never smoked/Not applicable': 0, 
+            'Within past month': 1, 'Within past 3 months': 2, 'Within past 6 months': 3, 
+            'Within past year': 4, 'Within past 5 years': 5, 'Within past 10 years': 6, '10 years or more': 7, 
+            'Never smoked regularly': 8, 'Don\'t Know': 77, 'Prefer not to say': 99 
         }, 
         'default': 'Never smoked/Not applicable', 
-        'help': 'How long since you last smoked?', 
+        'help': 'How long has it been since you last smoked a cigarette?', 
         'category': 'Lifestyle - Smoking' 
     },
     '_PACKDAY': { 
-        'label': 'Packs Per Day (Raw)', 
+        'label': 'Daily Packs of Cigarettes', 
         'type': 'slider', 
-        'min': 0, 'max': 2450, 'default': 0, # Updated max
-        'help': 'Average packs per day (Raw value)', 
+        'min': 0, 'max': 100, 'default': 0, 
+        'help': 'Number of packs of cigarettes smoked per day (calculated).', 
         'category': 'Lifestyle - Smoking' 
     },
     '_PACKYRS': { 
-        'label': 'Pack-Years (Raw)', 
+        'label': 'Total Pack-Years', 
         'type': 'slider', 
-        'min': 0, 'max': 1274, 'default': 0, # Updated max
-        'help': 'Packs per day × years smoked', 
+        'min': 0, 'max': 999, 'default': 0, 
+        'help': 'Calculated: Years smoked multiplied by packs per day.', 
         'category': 'Lifestyle - Smoking' 
     },
     
-    # Lifestyle - Alcohol
+    # --- Lifestyle - Alcohol ---
     'DRNKANY6': { 
         'label': 'Alcohol Consumption', 
         'type': 'radio', 
-        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Had any alcohol in past 30 days?', 
+        'help': 'During the past 30 days, did you have at least one drink of any alcoholic beverage?', 
         'category': 'Lifestyle - Alcohol' 
     },
     'ALCDAY4': { 
-        'label': 'Alcohol Frequency (Raw)', 
+        'label': 'Alcohol Frequency Code', 
         'type': 'slider', 
-        'min': 100, 'max': 999, 'default': 888, # Updated per user data (Min:100, Max:999)
-        'help': '101-107 (days/wk), 201-230 (days/mo), 888 (none), 777/999 (missing)', 
+        'min': 100, 'max': 999, 'default': 888, 
+        'help': 'Format: 1xx (Days/Week), 2xx (Days/Month). Example: 105 = 5 days/week. 205 = 5 days/month. 888 = None.', 
         'category': 'Lifestyle - Alcohol' 
     },
     '_DRNKWK3': { 
         'label': 'Drinks Per Week', 
         'type': 'slider', 
-        'min': 0, 'max': 50, 'default': 0, 
-        'help': 'Average number of drinks per week', 
+        'min': 0, 'max': 9990, 'default': 0, 
+        'help': 'Calculated total number of alcoholic beverages consumed per week.', 
         'category': 'Lifestyle - Alcohol' 
     },
     '_RFDRHV9': { 
-        'label': 'Heavy Drinker', 
+        'label': 'Heavy Drinker Status', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2, 'Refused/Missing': 9}, 
+        'options': {'No': 1, 'Yes': 2, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Heavy drinking (>14 drinks/week men, >7 women)', 
+        'help': 'Calculated: Men >14 drinks/week, Women >7 drinks/week.', 
         'category': 'Lifestyle - Alcohol' 
     },
     
-    # Lifestyle - Physical Activity
+    # --- Lifestyle - Physical Activity ---
     '_TOTINDA': { 
         'label': 'Physical Activity', 
         'type': 'radio', 
-        'options': {'Yes': 1, 'No': 2, 'Refused': 9}, 
-        'default': 'Yes', 
-        'help': 'Engaged in physical activity in past 30 days?', 
+        'options': {'Had physical activity': 1, 'No physical activity': 2, 'Prefer not to say': 9}, 
+        'default': 'Had physical activity', 
+        'help': 'During the past 30 days, did you participate in any physical activities or exercises?', 
         'category': 'Lifestyle - Activity' 
     },
     '_PHYS14D': { 
-        'label': 'Physical Activity Level', 
-        'type': 'selectbox', # Changed from slider to match values [1, 2, 3, 9]
+        'label': 'Physical Health Status Level', 
+        'type': 'selectbox', 
         'options': {
             'Zero days when physical health not good': 1,
             '1-13 days when physical health not good': 2,
             '14+ days when physical health not good': 3,
-            'Don\'t know/Refused': 9
+            'Don\'t know/Prefer not to say': 9
         },
         'default': 'Zero days when physical health not good', 
-        'help': '3-level physical health status', 
+        'help': 'Three-level grouping of physical health status.', 
         'category': 'Lifestyle - Activity' 
     },
     
-    # Additional flags
+    # --- Additional flags ---
     '_AGE65YR': { 
         'label': 'Age 65+', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2, 'Missing': 3}, 
-        'default': 'No', 
-        'help': 'Are you 65 years or older?', 
+        'options': {'Age 18 to 64': 1, 'Age 65 or older': 2, 'Prefer not to say': 3}, 
+        'default': 'Age 18 to 64', 
+        'help': 'Two-level age category.', 
         'category': 'Demographics' 
     },
     '_ADULT': { 
@@ -362,102 +369,124 @@ FEATURE_DEFINITIONS = {
         'type': 'radio', 
         'options': {'Yes': 1, 'No': 0}, 
         'default': 'Yes', 
-        'help': 'Adult (18+) respondent flag', 
+        'help': 'Are you 18 years of age or older?', 
         'category': 'Demographics' 
     },
     '_RFSMOK3': { 
         'label': 'Current Smoker Flag', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2, 'Refused': 9}, 
+        'options': {'No': 1, 'Yes': 2, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Currently smoking cigarettes', 
+        'help': 'Calculated variable: Adults who are current smokers.', 
         'category': 'Lifestyle - Smoking' 
     },
     'LCSLAST_': { 
-        'label': 'Last Smoked (Age)', 
+        'label': 'Age Last Smoked', 
         'type': 'slider', 
-        'min': 0, 'max': 81, 'default': 0, # Updated max to 81
-        'help': 'How old were you when you last smoked?', 
+        'min': 0, 'max': 100, 'default': 0, 
+        'help': 'How old were you when you last smoked cigarettes regularly?', 
         'category': 'Clinical' 
     },
     'LCSNUMC_': { 
-        'label': 'Cigarettes Per Day', 
+        'label': 'Average Cigarettes Per Day', 
         'type': 'slider', 
-        'min': 0, 'max': 490, 'default': 0, # Updated max to 490
-        'help': 'Number of cigarettes smoked per day', 
+        'min': 0, 'max': 300, 'default': 0, 
+        'help': 'On average, about how many cigarettes did you usually smoke each day?', 
         'category': 'Clinical' 
     },
     '_LCSYSMK': { 
-        'label': 'Total Years Smoked', 
+        'label': 'Years Smoked', 
         'type': 'slider', 
-        'min': 0, 'max': 90, 'default': 0, # Updated max to 90
-        'help': 'Total years as a smoker', 
+        'min': 0, 'max': 100, 'default': 0, 
+        'help': 'Total number of years you smoked cigarettes.', 
         'category': 'Lifestyle - Smoking' 
     },
     '_LCSSMKG': { 
         'label': 'Lung Cancer Screening Group', 
         'type': 'selectbox', 
         'options': { 
-            'Never smoker': 1, 'Former (quit >15 yr)': 2, 
-            'Former (quit <15 yr)': 3, 'Current smoker': 4,
-            'Unknown': 5, 'Refused': 6
+            'Current smoker, 20+ Pack Years': 1, 
+            'Former smoker, 20+ Pack Years, quit < 15 yrs': 2, 
+            'Current smoker, < 20 Pack Years': 3, 
+            'Former smoker, 20+ Pack Years, quit >= 15 yrs': 4,
+            'Former smoker, < 20 Pack Years': 5,
+            'Never smoker': 6
         }, 
         'default': 'Never smoker', 
-        'help': 'Smoking status for lung cancer screening', 
+        'help': 'Smoking status grouping for lung cancer screening.', 
         'category': 'Lifestyle - Smoking' 
     },
     '_MRACE1': { 
-        'label': 'Multiracial', 
-        'type': 'selectbox', # Changed to selectbox for many values
-        'options': {'White': 1, 'Black': 2, 'Native Am': 3, 'Asian': 4, 'Pacific Is': 5, 'Other': 6, 'Multiracial': 7, 'Don\'t Know': 77, 'Refused': 99}, 
-        'default': 'White', 
-        'help': 'Identify as multiracial?', 
+        'label': 'Multiracial Identity', 
+        'type': 'selectbox', 
+        'options': {
+            'White only': 1, 
+            'Black or African American only': 2, 
+            'American Indian or Alaskan Native only': 3, 
+            'Asian Only': 4, 
+            'Native Hawaiian or other Pacific Islander only': 5, 
+            'Other race only': 6, 
+            'Multiracial': 7, 
+            'Don\'t Know': 77, 
+            'Prefer not to say': 99
+        }, 
+        'default': 'White only', 
+        'help': 'Calculated multiracial race categorization.', 
         'category': 'Demographics' 
     },
     '_HISPANC': { 
         'label': 'Hispanic Origin', 
         'type': 'radio', 
-        'options': {'Yes': 1, 'No': 2, 'Refused': 9}, 
-        'default': 'No', 
-        'help': 'Hispanic or Latino origin?', 
+        'options': {'Hispanic, Latino/a, or Spanish origin': 1, 'Not of Hispanic, Latino/a, or Spanish origin': 2, 'Prefer not to say': 9}, 
+        'default': 'Not of Hispanic, Latino/a, or Spanish origin', 
+        'help': 'Are you of Hispanic, Latino/a, or Spanish origin?', 
         'category': 'Demographics' 
     },
     '_RACE': { 
-        'label': 'Race (Detailed)', 
+        'label': 'Race/Ethnicity (Detailed)', 
         'type': 'selectbox', 
         'options': { 
-            'White': 1, 'Black': 2, 'American Indian/Alaska Native': 3, 
-            'Asian': 4, 'Native Hawaiian/Pacific Islander': 5, 
-            'Other': 6, 'Multiracial': 7, 'Hispanic': 8 
+            'White only, non-Hispanic': 1, 
+            'Black only, non-Hispanic': 2, 
+            'American Indian or Alaskan Native only, Non-Hispanic': 3, 
+            'Asian only, non-Hispanic': 4, 
+            'Native Hawaiian or other Pacific Islander only, Non-Hispanic': 5, 
+            'Other race only, non-Hispanic': 6, 
+            'Multiracial, non-Hispanic': 7, 
+            'Hispanic': 8 
         }, 
-        'default': 'White', 
-        'help': 'Detailed race classification', 
+        'default': 'White only, non-Hispanic', 
+        'help': 'Detailed race/ethnicity categories.', 
         'category': 'Demographics' 
     },
     '_RACEGR3': { 
-        'label': 'Race Group', 
+        'label': 'Race/Ethnicity (5 Groups)', 
         'type': 'selectbox', 
         'options': { 
-            'White': 1, 'Black': 2, 'Other': 3, 
-            'Multiracial': 4, 'Hispanic': 5, 'Refused': 9 
+            'White only, Non-Hispanic': 1, 
+            'Black only, Non-Hispanic': 2, 
+            'Other race only, Non-Hispanic': 3, 
+            'Multiracial, Non-Hispanic': 4, 
+            'Hispanic': 5, 
+            'Prefer not to say': 9 
         }, 
-        'default': 'White', 
-        'help': 'Race group classification', 
+        'default': 'White only, Non-Hispanic', 
+        'help': 'Five-level race/ethnicity category.', 
         'category': 'Demographics' 
     },
     '_LCSYQTS': { 
-        'label': 'Quit Attempts (Years)', 
+        'label': 'Years Since Quitting Smoking', 
         'type': 'slider', 
-        'min': -30, 'max': 83, 'default': 0, # Updated range
-        'help': 'Years since quitting', 
+        'min': 0, 'max': 100, 'default': 0, 
+        'help': 'Number of years since you last smoked cigarettes.', 
         'category': 'Lifestyle - Smoking' 
     },
     '_RFBING6': { 
-        'label': 'Binge Drinker', 
+        'label': 'Binge Drinker Status', 
         'type': 'radio', 
-        'options': {'No': 1, 'Yes': 2, 'Refused': 9}, 
+        'options': {'No': 1, 'Yes': 2, 'Prefer not to say': 9}, 
         'default': 'No', 
-        'help': 'Binge drinking calculated flag', 
+        'help': 'Calculated: Having 5+ drinks (men) or 4+ drinks (women) on one occasion.', 
         'category': 'Lifestyle - Alcohol' 
     }
 }
