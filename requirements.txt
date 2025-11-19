@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+catboost
+plotly
+lightgbm
+xgboost
+torch
+
