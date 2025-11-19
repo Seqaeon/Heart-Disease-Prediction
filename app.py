@@ -751,7 +751,7 @@ def load_model():
 
     try:
         with open(model_path, 'rb') as f:
-            model = pickle.load(f)
+            model = torch.load(f,map_location=torch.device('cpu'))
         return model
     except Exception as e:
         st.error(f"Error loading pickle file: {e}")
