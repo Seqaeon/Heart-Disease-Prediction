@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -727,21 +728,32 @@ class StackingEnsemble:
 
 
 # Load or create model (placeholder - you'll need to save your trained model)
+
+
 @st.cache_resource
 def load_model():
-    """
-    Load your trained CatBoost model here
-    For now, returns None - replace with actual model loading
-    """
-    try:
-        # Replace with your actual model file
-        model = pickle.load(open('model.pkl', 'rb'))
-        return model
-        # st.warning("⚠️ Model file not loaded. Please save your trained model and update this function.")
-        # return None
-    except:
+    # 1. Get the directory where THIS file (app.py) is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. Construct the absolute path to the model
+    # Change 'model.pkl' to 'models/model.pkl' if it is in a subfolder
+    model_path = os.path.join(current_dir, 'model.pkl')
+    
+    # 3. Debugging: Print the path to the Streamlit logs so you can see it
+    print(f"Attempting to load model from: {model_path}")
+
+    if not os.path.exists(model_path):
+        st.error(f"File not found at: {model_path}")
+        st.warning("Please ensure 'model.pkl' is committed to your GitHub repository.")
         return None
 
+    try:
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        return model
+    except Exception as e:
+        st.error(f"Error loading pickle file: {e}")
+        return None
 model = load_model()
 
 # Sidebar - Feature Input
