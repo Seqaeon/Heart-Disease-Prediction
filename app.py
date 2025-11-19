@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -13,7 +12,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
-
 
 
 # Page configuration
@@ -64,392 +62,404 @@ st.markdown("### Interactive tool to assess heart disease risk based on clinical
 
 
 
-# Feature definitions with proper ranges and descriptions
+
 FEATURE_DEFINITIONS = {
     # Demographics
-    '_AGE80': {
-        'label': 'Age',
-        'type': 'slider',
-        'min': 18, 'max': 80, 'default': 45,
-        'help': 'Age in years (18-80)',
-        'category': 'Demographics'
+    '_AGE80': { 
+        'label': 'Age', 
+        'type': 'slider', 
+        'min': 18, 'max': 80, 'default': 45, 
+        'help': 'Age in years (18-80)', 
+        'category': 'Demographics' 
     },
-    '_SEX': {
-        'label': 'Sex',
-        'type': 'radio',
-        'options': {'Male': 1, 'Female': 2},
-        'default': 'Male',
-        'help': 'Biological sex',
-        'category': 'Demographics'
+    '_SEX': { 
+        'label': 'Sex', 
+        'type': 'radio', 
+        'options': {'Male': 1, 'Female': 2}, 
+        'default': 'Male', 
+        'help': 'Biological sex', 
+        'category': 'Demographics' 
     },
-    '_IMPRACE': {
-        'label': 'Race/Ethnicity',
+    '_IMPRACE': { 
+        'label': 'Race/Ethnicity (Imputed)', 
+        'type': 'selectbox', 
+        'options': { 'White': 1, 'Black': 2, 'Asian': 3, 'Native American': 4, 'Hispanic': 5, 'Other': 6 }, 
+        'default': 'White', 
+        'help': 'Race/ethnicity classification', 
+        'category': 'Demographics' 
+    },
+    '_RACEG21': {
+        'label': 'Race Group 2',
         'type': 'selectbox',
-        'options': {
-            'White': 1, 'Black': 2, 'Asian': 3, 
-            'Native American': 4, 'Hispanic': 5, 'Other': 6
-        },
+        'options': {'White': 1, 'Non-White': 2, 'Don\'t know/Refused': 9},
         'default': 'White',
-        'help': 'Race/ethnicity classification',
+        'help': 'White non-Hispanic vs Non-White',
         'category': 'Demographics'
     },
-    'EDUCA': {
-        'label': 'Education Level',
-        'type': 'selectbox',
-        'options': {
-            'Never attended school': 1,
-            'Elementary': 2,
-            'Some high school': 3,
-            'High school graduate': 4,
-            'Some college': 5,
+    'EDUCA': { 
+        'label': 'Education Level', 
+        'type': 'selectbox', 
+        'options': { 
+            'Never attended school': 1, 
+            'Elementary': 2, 
+            'Some high school': 3, 
+            'High school graduate': 4, 
+            'Some college': 5, 
             'College graduate': 6,
-        },
-        'default': 'High school graduate',
-        'help': 'Highest level of education completed',
-        'category': 'Demographics'
+            'Refused': 9 
+        }, 
+        'default': 'High school graduate', 
+        'help': 'Highest level of education completed', 
+        'category': 'Demographics' 
     },
-    'MARITAL': {
-        'label': 'Marital Status',
-        'type': 'selectbox',
-        'options': {
-            'Married': 1, 'Divorced': 2, 'Widowed': 3,
-            'Separated': 4, 'Never married': 5, 'Unmarried couple': 6,  
-
-        },
-        'default': 'Married',
-        'help': 'Current marital status',
-        'category': 'Demographics'
+    'MARITAL': { 
+        'label': 'Marital Status', 
+        'type': 'selectbox', 
+        'options': { 
+            'Married': 1, 'Divorced': 2, 'Widowed': 3, 
+            'Separated': 4, 'Never married': 5, 'Unmarried couple': 6, 
+            'Refused': 9
+        }, 
+        'default': 'Married', 
+        'help': 'Current marital status', 
+        'category': 'Demographics' 
     },
-    'VETERAN3': {
-        'label': 'Veteran Status',
-        'type': 'radio',
-        'options': {'Yes': 1, 'No': 2},
-        'default': 'No',
-        'help': 'Have you ever served in the military?',
-        'category': 'Demographics'
+    'VETERAN3': { 
+        'label': 'Veteran Status', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Have you ever served in the military?', 
+        'category': 'Demographics' 
     },
-    'EMPLOY1': {
-        'label': 'Employment Status',
-        'type': 'selectbox',
-        'options': {
-            'Employed': 1, 'Self-employed': 2, 'Unemployed <1 year': 3,
-            'Unemployed >1 year': 4, 'Homemaker': 5, 'Student': 6,
-            'Retired': 7, 'Unable to work': 8
-        },
-        'default': 'Employed',
-        'help': 'Current employment status',
-        'category': 'Demographics'
+    'EMPLOY1': { 
+        'label': 'Employment Status', 
+        'type': 'selectbox', 
+        'options': { 
+            'Employed': 1, 'Self-employed': 2, 'Unemployed <1 year': 3, 
+            'Unemployed >1 year': 4, 'Homemaker': 5, 'Student': 6, 
+            'Retired': 7, 'Unable to work': 8, 'Refused': 9 
+        }, 
+        'default': 'Employed', 
+        'help': 'Current employment status', 
+        'category': 'Demographics' 
     },
-    'RENTHOM1': {
-        'label': 'Housing Status',
-        'type': 'radio',
-        'options': {'Own': 1, 'Rent': 2, 'Other': 3},
-        'default': 'Own',
-        'help': 'Do you own or rent your home?',
-        'category': 'Demographics'
+    'RENTHOM1': { 
+        'label': 'Housing Status', 
+        'type': 'selectbox', 
+        'options': {'Own': 1, 'Rent': 2, 'Other': 3, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'Own', 
+        'help': 'Do you own or rent your home?', 
+        'category': 'Demographics' 
     },
-    '_INCOMG1': {
-        'label': 'Income Level',
-        'type': 'selectbox',
-        'options': {
-            '<$15,000': 1, '$15,000-$25,000': 2, '$25,000-$35,000': 3,
-            '$35,000-$50,000': 4, '$50,000-$75,000': 5, '>$75,000': 6
-        },
-        'default': '$35,000-$50,000',
-        'help': 'Annual household income range',
-        'category': 'Demographics'
+    '_INCOMG1': { 
+        'label': 'Income Level', 
+        'type': 'selectbox', 
+        'options': { 
+            '<$15,000': 1, '$15,000-$25,000': 2, '$25,000-$35,000': 3, 
+            '$35,000-$50,000': 4, '$50,000-$75,000': 5, '>$75,000': 6, 'Don\'t know/Refused': 9 
+        }, 
+        'default': '$35,000-$50,000', 
+        'help': 'Annual household income range', 
+        'category': 'Demographics' 
     },
     
     # Clinical Features
-    'DIABETE4': {
-        'label': 'Diabetes Status',
-        'type': 'selectbox',
-        'options': {
-            'No': 1, 'Yes': 2, 'Borderline/Pre-diabetes': 3, 'Yes (during pregnancy)': 4
-        },
-        'default': 'No',
-        'help': 'Have you ever been told you have diabetes?',
-        'category': 'Clinical'
+    'DIABETE4': { 
+        'label': 'Diabetes Status', 
+        'type': 'selectbox', 
+        'options': { 
+            'No': 1, 'Yes': 2, 'Borderline/Pre-diabetes': 3, 'Yes (during pregnancy)': 4,
+            'Don\'t Know': 7, 'Refused': 9 
+        }, 
+        'default': 'No', 
+        'help': 'Have you ever been told you have diabetes?', 
+        'category': 'Clinical' 
     },
-    'PHYSHLTH': {
-        'label': 'Days Physical Health Not Good',
-        'type': 'slider',
-        'min': 0, 'max': 30, 'default': 0,
-        'help': 'Number of days in past 30 days your physical health was not good',
-        'category': 'Clinical'
+    'PHYSHLTH': { 
+        'label': 'Days Physical Health Not Good', 
+        'type': 'slider', 
+        'min': 1, 'max': 99, 'default': 1, # Updated per user data (Min:1, Max:99)
+        'help': 'Number of days in past 30 days (88=None, 77=Don\'t know, 99=Refused)', 
+        'category': 'Clinical' 
     },
-    '_DRDXAR2': {
-        'label': 'Arthritis Diagnosis',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Have you been diagnosed with arthritis?',
-        'category': 'Clinical'
+    '_DRDXAR2': { 
+        'label': 'Arthritis Diagnosis', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2}, # Data says [1, 2], ignoring missing/blank
+        'default': 'No', 
+        'help': 'Have you been diagnosed with arthritis?', 
+        'category': 'Clinical' 
     },
-    'WTKG3': {
-        'label': 'Weight (kg)',
-        'type': 'slider',
-        'min': 40, 'max': 200, 'default': 75,
-        'help': 'Body weight in kilograms',
-        'category': 'Clinical'
+    'WTKG3': { 
+        'label': 'Weight (Raw Code)', 
+        'type': 'slider', 
+        'min': 2268, 'max': 29030, 'default': 7000, # Updated per user data
+        'help': 'Weight in implied decimals (e.g., 7000 = 70.00 kg). Range: 2268-29030', 
+        'category': 'Clinical' 
     },
-    '_BMI5CAT': {
-        'label': 'BMI Category',
-        'type': 'selectbox',
-        'options': {
-            'Underweight': 1, 'Normal weight': 2,
-            'Overweight': 3, 'Obese': 4
-        },
-        'default': 'Normal weight',
-        'help': 'Body Mass Index category',
-        'category': 'Clinical'
+    '_BMI5CAT': { 
+        'label': 'BMI Category', 
+        'type': 'selectbox', 
+        'options': { 'Underweight': 1, 'Normal weight': 2, 'Overweight': 3, 'Obese': 4 }, 
+        'default': 'Normal weight', 
+        'help': 'Body Mass Index category', 
+        'category': 'Clinical' 
     },
-    '_RFBMI5': {
-        'label': 'Overweight/Obese',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'BMI >= 25',
-        'category': 'Clinical'
+    '_RFBMI5': { 
+        'label': 'Overweight/Obese', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2, 'Don\'t know/Refused': 9}, 
+        'default': 'No', 
+        'help': 'BMI >= 25', 
+        'category': 'Clinical' 
     },
-    'DECIDE':{
-        'label': 'Difficulty Concentrating or Remembering',
-        'type': 'radio',
-        'options': {
-            'Yes': 1,
-            'No': 2,},
-        'default': 'No',
-        'help': 'Because of a physical, mental, or emotional condition, do you have serious difficulty concentrating, remembering, or making decisions?',
-        'category': 'Clinical'
-
-
+    'DECIDE':{ 
+        'label': 'Difficulty Concentrating', 
+        'type': 'radio', 
+        'options': { 'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Difficulty concentrating, remembering, or making decisions?', 
+        'category': 'Clinical' 
     },  
     
     # Lifestyle - Smoking
-    'SMOKE100': {
-        'label': 'Smoked 100+ Cigarettes Lifetime',
-        'type': 'radio',
-        'options': {'No': 2, 'Yes': 1},
-        'default': 'No',
-        'help': 'Have you smoked at least 100 cigarettes in your lifetime?',
-        'category': 'Lifestyle - Smoking'
+    'SMOKE100': { 
+        'label': 'Smoked 100+ Cigarettes', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Have you smoked at least 100 cigarettes in your lifetime?', 
+        'category': 'Lifestyle - Smoking' 
     },
-    '_SMOKER3': {
-        'label': 'Smoking Status',
-        'type': 'selectbox',
+    '_SMOKER3': { 
+        'label': 'Smoking Status', 
+        'type': 'selectbox', 
+        'options': { 
+            'Current smoker - daily': 1, 
+            'Current smoker - some days': 2, 
+            'Former smoker': 3, 
+            'Never smoked': 4,
+            'Refused/Missing': 9 
+        }, 
+        'default': 'Never smoked', 
+        'help': 'Current smoking status', 
+        'category': 'Lifestyle - Smoking' 
+    },
+    'SMOKDAY2': { 
+        'label': 'Smoking Frequency', 
+        'type': 'selectbox', # Changed from slider based on values [0, 1, 2, 3, 7, 9]
         'options': {
-            'Current smoker - daily': 1,
-            'Current smoker - some days': 2,
-            'Former smoker': 3,
-            'Never smoked': 4
+            'Every day': 1, 'Some days': 2, 'Not at all': 3,
+            'Not applicable (Non-smoker)': 0, 'Don\'t Know': 7, 'Refused': 9
         },
-        'default': 'Never smoked',
-        'help': 'Current smoking status',
-        'category': 'Lifestyle - Smoking'
+        'default': 'Not applicable (Non-smoker)', 
+        'help': 'Frequency of days smoking', 
+        'category': 'Lifestyle - Smoking' 
     },
-    'SMOKDAY2': {
-        'label': 'Days Smoked Per Month',
-        'type': 'slider',
-        'min': 0, 'max': 30, 'default': 0,
-        'help': 'Number of days smoked in past 30 days',
-        'category': 'Lifestyle - Smoking'
+    'USENOW3': { 
+        'label': 'Current Tobacco Use', 
+        'type': 'selectbox', 
+        'options': {'Every day': 1, 'Some days': 2, 'Not at all': 3, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'Not at all', 
+        'help': 'Do you currently use tobacco?', 
+        'category': 'Lifestyle - Smoking' 
     },
-    'USENOW3': {
-        'label': 'Current Tobacco Use',
-        'type': 'selectbox',
-        'options': {'Every day': 1, 'Some days': 2, 'Not at all': 3},
-        'default': 'Not at all',
-        'help': 'Do you currently use tobacco?',
-        'category': 'Lifestyle - Smoking'
+    'LASTSMK2': { 
+        'label': 'Time Since Last Smoked', 
+        'type': 'selectbox', 
+        'options': { 
+            'Never smoked/Not applicable': 0, # Added 0 based on data
+            'Within past month': 1, '1-3 months': 2, '3-6 months': 3, 
+            '6-12 months': 4, '1-5 years': 5, '5-10 years': 6, '>10 years': 7, 
+            'Never (Original)': 8, 'Don\'t Know': 77, 'Refused': 99 
+        }, 
+        'default': 'Never smoked/Not applicable', 
+        'help': 'How long since you last smoked?', 
+        'category': 'Lifestyle - Smoking' 
     },
-    'LASTSMK2': {
-        'label': 'Time Since Last Smoked',
-        'type': 'selectbox',
-        'options': {
-            'Within past month': 1, '1-3 months': 2, '3-6 months': 3,
-            '6-12 months': 4, '1-5 years': 5, '5-10 years': 6, '>10 years': 7, 'Never': 8
-        },
-        'default': 'Never',
-        'help': 'How long since you last smoked?',
-        'category': 'Lifestyle - Smoking'
+    '_PACKDAY': { 
+        'label': 'Packs Per Day (Raw)', 
+        'type': 'slider', 
+        'min': 0, 'max': 2450, 'default': 0, # Updated max
+        'help': 'Average packs per day (Raw value)', 
+        'category': 'Lifestyle - Smoking' 
     },
-    # '_PACKDAY': {
-    #     'label': 'Packs Per Day',
-    #     'type': 'slider',
-    #     'min': 0, 'max': 5, 'default': 0, 'step': 0.1,
-    #     'help': 'Average packs of cigarettes per day',
-    #     'category': 'Lifestyle - Smoking'
-    # },
-    '_PACKYRS': {
-        'label': 'Pack-Years',
-        'type': 'slider',
-        'min': 0, 'max': 1000, 'default': 0,
-        'help': 'Packs per day × years smoked',
-        'category': 'Lifestyle - Smoking'
+    '_PACKYRS': { 
+        'label': 'Pack-Years (Raw)', 
+        'type': 'slider', 
+        'min': 0, 'max': 1274, 'default': 0, # Updated max
+        'help': 'Packs per day × years smoked', 
+        'category': 'Lifestyle - Smoking' 
     },
     
     # Lifestyle - Alcohol
-    'DRNKANY6': {
-        'label': 'Alcohol Consumption',
-        'type': 'radio',
-        'options': {'No': 2, 'Yes': 1},
-        'default': 'No',
-        'help': 'Had any alcohol in past 30 days?',
-        'category': 'Lifestyle - Alcohol'
+    'DRNKANY6': { 
+        'label': 'Alcohol Consumption', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 2, 'Don\'t Know': 7, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Had any alcohol in past 30 days?', 
+        'category': 'Lifestyle - Alcohol' 
     },
-    'ALCDAY4': {
-        'label': 'Days Drank Per Month',
-        'type': 'slider',
-        'min': 0, 'max': 30, 'default': 0,
-        'help': 'Number of days had alcohol in past 30 days',
-        'category': 'Lifestyle - Alcohol'
+    'ALCDAY4': { 
+        'label': 'Alcohol Frequency (Raw)', 
+        'type': 'slider', 
+        'min': 100, 'max': 999, 'default': 888, # Updated per user data (Min:100, Max:999)
+        'help': '101-107 (days/wk), 201-230 (days/mo), 888 (none), 777/999 (missing)', 
+        'category': 'Lifestyle - Alcohol' 
     },
-    '_DRNKWK3': {
-        'label': 'Drinks Per Week',
-        'type': 'slider',
-        'min': 0, 'max': 50, 'default': 0,
-        'help': 'Average number of drinks per week',
-        'category': 'Lifestyle - Alcohol'
+    '_DRNKWK3': { 
+        'label': 'Drinks Per Week', 
+        'type': 'slider', 
+        'min': 0, 'max': 50, 'default': 0, 
+        'help': 'Average number of drinks per week', 
+        'category': 'Lifestyle - Alcohol' 
     },
-    '_RFDRHV9': {
-        'label': 'Heavy Drinker',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Heavy drinking (>14 drinks/week men, >7 women)',
-        'category': 'Lifestyle - Alcohol'
+    '_RFDRHV9': { 
+        'label': 'Heavy Drinker', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2, 'Refused/Missing': 9}, 
+        'default': 'No', 
+        'help': 'Heavy drinking (>14 drinks/week men, >7 women)', 
+        'category': 'Lifestyle - Alcohol' 
     },
     
     # Lifestyle - Physical Activity
-    '_TOTINDA': {
-        'label': 'Physical Activity',
-        'type': 'radio',
-        'options': {'No': 2, 'Yes': 1},
-        'default': 'Yes',
-        'help': 'Engaged in physical activity in past 30 days?',
-        'category': 'Lifestyle - Activity'
+    '_TOTINDA': { 
+        'label': 'Physical Activity', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 2, 'Refused': 9}, 
+        'default': 'Yes', 
+        'help': 'Engaged in physical activity in past 30 days?', 
+        'category': 'Lifestyle - Activity' 
     },
-    '_PHYS14D': {
-        'label': 'Days Physically Active',
-        'type': 'slider',
-        'min': 0, 'max': 30, 'default': 15,
-        'help': 'Days physically active in past 30 days',
-        'category': 'Lifestyle - Activity'
+    '_PHYS14D': { 
+        'label': 'Physical Activity Level', 
+        'type': 'selectbox', # Changed from slider to match values [1, 2, 3, 9]
+        'options': {
+            'Zero days when physical health not good': 1,
+            '1-13 days when physical health not good': 2,
+            '14+ days when physical health not good': 3,
+            'Don\'t know/Refused': 9
+        },
+        'default': 'Zero days when physical health not good', 
+        'help': '3-level physical health status', 
+        'category': 'Lifestyle - Activity' 
     },
     
     # Additional flags
-    '_AGE65YR': {
-        'label': 'Age 65+',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Are you 65 years or older?',
-        'category': 'Demographics'
+    '_AGE65YR': { 
+        'label': 'Age 65+', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2, 'Missing': 3}, 
+        'default': 'No', 
+        'help': 'Are you 65 years or older?', 
+        'category': 'Demographics' 
     },
-    
-    '_ADULT': {
-        'label': 'Adult Respondent',
-        'type': 'radio',
-        'options': {'No': 0, 'Yes': 1},
-        'default': 'Yes',
-        'help': 'Adult (18+) respondent flag',
-        'category': 'Demographics'
+    '_ADULT': { 
+        'label': 'Adult Respondent', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 0}, 
+        'default': 'Yes', 
+        'help': 'Adult (18+) respondent flag', 
+        'category': 'Demographics' 
     },
-
-    '_RFSMOK3': {
-        'label': 'Current Smoker Flag',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Currently smoking cigarettes',
-        'category': 'Lifestyle - Smoking'
+    '_RFSMOK3': { 
+        'label': 'Current Smoker Flag', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Currently smoking cigarettes', 
+        'category': 'Lifestyle - Smoking' 
     },
-    'LCSLAST_': {
-        'label': 'Lung Cancer Screening',
-        'type': 'slider',
-        'min': 0, 'max': 10, 'default': 0,
-        'help': 'Years since last lung cancer screening',
-        'category': 'Clinical'
+    'LCSLAST_': { 
+        'label': 'Last Smoked (Age)', 
+        'type': 'slider', 
+        'min': 0, 'max': 81, 'default': 0, # Updated max to 81
+        'help': 'How old were you when you last smoked?', 
+        'category': 'Clinical' 
     },
-    'LCSNUMC_': {
-        'label': 'Number of Screenings',
-        'type': 'slider',
-        'min': 0, 'max': 20, 'default': 0,
-        'help': 'Number of lung cancer screenings',
-        'category': 'Clinical'
+    'LCSNUMC_': { 
+        'label': 'Cigarettes Per Day', 
+        'type': 'slider', 
+        'min': 0, 'max': 490, 'default': 0, # Updated max to 490
+        'help': 'Number of cigarettes smoked per day', 
+        'category': 'Clinical' 
     },
-    '_LCSYSMK': {
-        'label': 'Years Smoked',
-        'type': 'slider',
-        'min': 0, 'max': 60, 'default': 0,
-        'help': 'Total years as a smoker',
-        'category': 'Lifestyle - Smoking'
+    '_LCSYSMK': { 
+        'label': 'Total Years Smoked', 
+        'type': 'slider', 
+        'min': 0, 'max': 90, 'default': 0, # Updated max to 90
+        'help': 'Total years as a smoker', 
+        'category': 'Lifestyle - Smoking' 
     },
-    '_LCSSMKG': {
-        'label': 'Smoking Status for Screening',
-        'type': 'selectbox',
-        'options': {
-            'Never': 1, 'Former (quit >15 years)': 2,
-            'Former (quit <15 years)': 3, 'Current': 4
-        },
-        'default': 'Never',
-        'help': 'Smoking status for lung cancer screening eligibility',
-        'category': 'Lifestyle - Smoking'
+    '_LCSSMKG': { 
+        'label': 'Lung Cancer Screening Group', 
+        'type': 'selectbox', 
+        'options': { 
+            'Never smoker': 1, 'Former (quit >15 yr)': 2, 
+            'Former (quit <15 yr)': 3, 'Current smoker': 4,
+            'Unknown': 5, 'Refused': 6
+        }, 
+        'default': 'Never smoker', 
+        'help': 'Smoking status for lung cancer screening', 
+        'category': 'Lifestyle - Smoking' 
     },
-    '_MRACE1': {
-        'label': 'Multiracial',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Identify as multiracial?',
-        'category': 'Demographics'
+    '_MRACE1': { 
+        'label': 'Multiracial', 
+        'type': 'selectbox', # Changed to selectbox for many values
+        'options': {'White': 1, 'Black': 2, 'Native Am': 3, 'Asian': 4, 'Pacific Is': 5, 'Other': 6, 'Multiracial': 7, 'Don\'t Know': 77, 'Refused': 99}, 
+        'default': 'White', 
+        'help': 'Identify as multiracial?', 
+        'category': 'Demographics' 
     },
-    '_HISPANC': {
-        'label': 'Hispanic Origin',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Hispanic or Latino origin?',
-        'category': 'Demographics'
+    '_HISPANC': { 
+        'label': 'Hispanic Origin', 
+        'type': 'radio', 
+        'options': {'Yes': 1, 'No': 2, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Hispanic or Latino origin?', 
+        'category': 'Demographics' 
     },
-    '_RACE': {
-        'label': 'Race (Detailed)',
-        'type': 'selectbox',
-        'options': {
-            'White': 1, 'Black': 2, 'American Indian/Alaska Native': 3,
-            'Asian': 4, 'Native Hawaiian/Pacific Islander': 5,
-            'Other': 6, 'Multiracial': 7, 'Hispanic': 8
-        },
-        'default': 'White',
-        'help': 'Detailed race classification',
-        'category': 'Demographics'
+    '_RACE': { 
+        'label': 'Race (Detailed)', 
+        'type': 'selectbox', 
+        'options': { 
+            'White': 1, 'Black': 2, 'American Indian/Alaska Native': 3, 
+            'Asian': 4, 'Native Hawaiian/Pacific Islander': 5, 
+            'Other': 6, 'Multiracial': 7, 'Hispanic': 8 
+        }, 
+        'default': 'White', 
+        'help': 'Detailed race classification', 
+        'category': 'Demographics' 
     },
-    '_RACEGR3': {
-        'label': 'Race Group',
-        'type': 'selectbox',
-        'options': {
-            'White': 1, 'Black': 2, 'Other': 3,
-            'Multiracial': 4, 'Hispanic': 5
-        },
-        'default': 'White',
-        'help': 'Race group classification',
-        'category': 'Demographics'
+    '_RACEGR3': { 
+        'label': 'Race Group', 
+        'type': 'selectbox', 
+        'options': { 
+            'White': 1, 'Black': 2, 'Other': 3, 
+            'Multiracial': 4, 'Hispanic': 5, 'Refused': 9 
+        }, 
+        'default': 'White', 
+        'help': 'Race group classification', 
+        'category': 'Demographics' 
     },
-    '_LCSYQTS': {
-        'label': 'Quit Attempts',
-        'type': 'slider',
-        'min': 0, 'max': 20, 'default': 0,
-        'help': 'Number of times tried to quit smoking',
-        'category': 'Lifestyle - Smoking'
+    '_LCSYQTS': { 
+        'label': 'Quit Attempts (Years)', 
+        'type': 'slider', 
+        'min': -30, 'max': 83, 'default': 0, # Updated range
+        'help': 'Years since quitting', 
+        'category': 'Lifestyle - Smoking' 
     },
-    '_RFBING6': {
-        'label': 'Binge Drinker',
-        'type': 'radio',
-        'options': {'No': 1, 'Yes': 2},
-        'default': 'No',
-        'help': 'Binge drinking (5+ drinks men, 4+ women on one occasion)',
-        'category': 'Lifestyle - Alcohol'
-    },
+    '_RFBING6': { 
+        'label': 'Binge Drinker', 
+        'type': 'radio', 
+        'options': {'No': 1, 'Yes': 2, 'Refused': 9}, 
+        'default': 'No', 
+        'help': 'Binge drinking calculated flag', 
+        'category': 'Lifestyle - Alcohol' 
+    }
 }
 
 # Initialize session state for storing predictions
@@ -730,32 +740,35 @@ class StackingEnsemble:
 
 
 # Load or create model (placeholder - you'll need to save your trained model)
-
-
 @st.cache_resource
 def load_model():
-    # 1. Get the directory where THIS file (app.py) is located
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # 2. Construct the absolute path to the model
-    # Change 'model.pkl' to 'models/model.pkl' if it is in a subfolder
-    model_path = os.path.join(current_dir, 'model.pkl')
-    
-    # 3. Debugging: Print the path to the Streamlit logs so you can see it
-    print(f"Attempting to load model from: {model_path}")
-
-    if not os.path.exists(model_path):
-        st.error(f"File not found at: {model_path}")
-        st.warning("Please ensure 'model.pkl' is committed to your GitHub repository.")
-        return None
-
+    """
+    Load your trained model and force it to run on CPU to avoid device mismatches
+    """
     try:
-        with open(model_path, 'rb') as f:
-            model = torch.load(f,map_location=torch.device('cpu'))
+        # 1. Load the pickle/torch object mapping storage to CPU
+        model = torch.load('model.pkl', map_location=torch.device('cpu'))
+        
+        # 2. CRITICAL FIX: Force the internal Meta-Learner to CPU
+        # The error comes from the internal neural network trying to use CUDA
+        if hasattr(model, 'meta_model'):
+            # Force TabNet or custom NN to use CPU device
+            if hasattr(model.meta_model, 'device'):
+                model.meta_model.device = torch.device('cpu')
+            
+            # Ensure the actual PyTorch network weights are on CPU
+            if hasattr(model.meta_model, 'network'):
+                model.meta_model.network = model.meta_model.network.to('cpu')
+            elif isinstance(model.meta_model, nn.Module):
+                model.meta_model = model.meta_model.to('cpu')
+
         return model
     except Exception as e:
-        st.error(f"Error loading pickle file: {e}")
+        # Helpful debugging if file is missing or incompatible
+        st.error(f"⚠️ Error loading model: {str(e)}")
+        st.info("Please ensure 'model.pkl' is in the same directory and matches the class structure.")
         return None
+
 model = load_model()
 
 # Sidebar - Feature Input
@@ -776,9 +789,15 @@ user_inputs = {}
 # Create tabs for different categories
 category_order = ['Demographics', 'Clinical', 'Lifestyle - Smoking', 'Lifestyle - Alcohol', 'Lifestyle - Activity']
 selected_category = st.sidebar.selectbox("Select Category", category_order)
-selected_features = ['EDUCA', 'RENTHOM1', 'VETERAN3', 'DECIDE', 'SMOKE100', 'SMOKDAY2', 'LASTSMK2', '_IMPRACE', '_PHYS14D', '_TOTINDA', '_HISPANC', '_RACE', 
-                    '_RACEGR3', '_AGE65YR', '_AGE_G', 'WTKG3', '_BMI5CAT', '_RFBMI5', '_INCOMG1', '_SMOKER3', '_RFSMOK3', 'LCSLAST_', '_LCSYSMK', '_PACKYRS',
-                     '_LCSYQTS', '_LCSSMKG', '_RFBING6', '_RFDRHV9', '_ADULT']
+selected_features =['PHYSHLTH', 'EDUCA', 'RENTHOM1', 'VETERAN3', 'DECIDE', 'SMOKE100', 'SMOKDAY2', 'USENOW3', 'ALCDAY4', 'LASTSMK2',
+ '_IMPRACE', '_PHYS14D', '_TOTINDA', '_MRACE1', '_HISPANC', '_RACEG21', '_RACEGR3', '_AGE65YR', '_AGE_G', 'WTKG3',
+ '_BMI5CAT', '_RFBMI5', '_SMOKER3', '_RFSMOK3', 'LCSLAST_', 'LCSNUMC_', '_LCSYSMK', '_PACKDAY', '_PACKYRS', '_LCSYQTS',
+ '_LCSSMKG', 'DRNKANY6', '_RFBING6', '_ADULT']
+
+
+#  ['EDUCA', 'RENTHOM1', 'VETERAN3', 'DECIDE', 'SMOKE100', 'SMOKDAY2', 'LASTSMK2', '_IMPRACE', '_PHYS14D', '_TOTINDA', '_HISPANC', '_RACE', 
+#                     '_RACEGR3', '_AGE65YR', '_AGE_G', 'WTKG3', '_BMI5CAT', '_RFBMI5', '_INCOMG1', '_SMOKER3', '_RFSMOK3', 'LCSLAST_', '_LCSYSMK', '_PACKYRS',
+#                      '_LCSYQTS', '_LCSSMKG', '_RFBING6', '_RFDRHV9', '_ADULT']
 
 st.sidebar.markdown(f"### {selected_category}")
 calculated_feature = ['_AGE_G', ]
