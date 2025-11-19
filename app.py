@@ -740,33 +740,43 @@ class StackingEnsemble:
 
 
 # Load or create model (placeholder - you'll need to save your trained model)
+import zipfile # Add this import at the top of your script
+
 @st.cache_resource
 def load_model():
     """
-    Load your trained model and force it to run on CPU to avoid device mismatches
+    Load model directly from a zip file and force to CPU.
+    Assumes the zip file is named 'model.zip' and contains 'model.pkl'.
     """
     try:
-        # 1. Load the pickle/torch object mapping storage to CPU
-        model = torch.load('model.pkl', map_location=torch.device('cpu'))
-        
-        # 2. CRITICAL FIX: Force the internal Meta-Learner to CPU
-        # The error comes from the internal neural network trying to use CUDA
-        if hasattr(model, 'meta_model'):
-            # Force TabNet or custom NN to use CPU device
-            if hasattr(model.meta_model, 'device'):
-                model.meta_model.device = torch.device('cpu')
-            
-            # Ensure the actual PyTorch network weights are on CPU
-            if hasattr(model.meta_model, 'network'):
-                model.meta_model.network = model.meta_model.network.to('cpu')
-            elif isinstance(model.meta_model, nn.Module):
-                model.meta_model = model.meta_model.to('cpu')
+        # Open the zip file in read mode
+        with zipfile.ZipFile('model.zip', 'r') as archive:
+            # Open the specific pickle file inside the zip
+            with archive.open('model.pkl') as model_file:
+                
+                # Load the model using the file object, mapping to CPU
+                model = torch.load(model_file, map_location=torch.device('cpu'))
+                
+                # --- CRITICAL CPU FIX (From previous step) ---
+                if hasattr(model, 'meta_model'):
+                    if hasattr(model.meta_model, 'device'):
+                        model.meta_model.device = torch.device('cpu')
+                    
+                    if hasattr(model.meta_model, 'network'):
+                        model.meta_model.network = model.meta_model.network.to('cpu')
+                    elif isinstance(model.meta_model, nn.Module):
+                        model.meta_model = model.meta_model.to('cpu')
 
-        return model
+                return model
+
+    except FileNotFoundError:
+        st.error("⚠️ 'model.zip' not found. Please ensure the file is in the directory.")
+        return None
+    except KeyError:
+        st.error("⚠️ 'model.pkl' not found inside the zip file. Check the internal filename.")
+        return None
     except Exception as e:
-        # Helpful debugging if file is missing or incompatible
         st.error(f"⚠️ Error loading model: {str(e)}")
-        st.info("Please ensure 'model.pkl' is in the same directory and matches the class structure.")
         return None
 
 model = load_model()
