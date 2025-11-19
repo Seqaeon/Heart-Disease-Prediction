@@ -512,7 +512,7 @@ if st.session_state.reset_defaults:
         default = config['options'][config['default']] if config['type'] in ['radio', 'selectbox'] else config['default']
         st.session_state[feature] = default
     st.session_state.reset_defaults = False
-device =  'cuda' if torch.cuda.is_available() else 'cpu'
+# device =  'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 
