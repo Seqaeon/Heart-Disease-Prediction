@@ -7,4 +7,5 @@ lightgbm==4.6.0
 xgboost==3.0.5
 torch==2.5.1
 scikit-learn==1.6.1
+pytorch-tabnet==4.1.0
 
